@@ -1,0 +1,9 @@
+@import "tailwindcss";
+
+.input {
+  @apply w-full border rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-teal-500;
+}
+
+html {
+  scroll-behavior: smooth;
+}
