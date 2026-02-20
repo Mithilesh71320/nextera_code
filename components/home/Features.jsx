@@ -1,11 +1,9 @@
 export default function Features() {
   return (
-    <section id="features" className="w-full bg-white py-24 scroll-mt-24 w-full bg-white py-24">
+    <section id="features" className="w-full bg-white py-24 scroll-mt-24">
       <div className="max-w-7xl mx-auto px-6 lg:px-16">
-
-        {/* HEADER */}
         <div className="text-center max-w-3xl mx-auto">
-          <span className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-purple-600 bg-purple-100 rounded-full">
+          <span className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-teal-700 bg-teal-100 rounded-full">
             <ActivityIcon />
             Platform Features
           </span>
@@ -15,13 +13,11 @@ export default function Features() {
           </h2>
 
           <p className="mt-4 text-lg text-slate-600">
-            A comprehensive suite of tools designed to streamline every aspect
-            of nurse staffing.
+            A complete workflow for nurse staffing, assignment, and coordination.
           </p>
         </div>
 
-        {/* FEATURES GRID */}
-        <div className="mt-16 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
+        <div className="mt-14 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-7">
           {FEATURES.map((feature) => (
             <FeatureCard key={feature.title} {...feature} />
           ))}
@@ -31,78 +27,57 @@ export default function Features() {
   );
 }
 
-/* ======================
-   REUSABLE CARD
-   ====================== */
 function FeatureCard({ title, description, gradient, Icon }) {
   return (
-    <div className="bg-slate-50 rounded-3xl p-10">
-      <div
-        className={`w-14 h-14 flex items-center justify-center rounded-2xl
-        bg-gradient-to-br ${gradient} shadow-sm mb-8 text-white`}
-      >
+    <div className="bg-slate-50/90 rounded-3xl p-8 border border-slate-100 hover:shadow-lg hover:-translate-y-0.5 transition">
+      <div className={`w-14 h-14 flex items-center justify-center rounded-2xl bg-gradient-to-br ${gradient} shadow-sm mb-6 text-white`}>
         <Icon />
       </div>
 
       <h3 className="text-xl font-semibold text-slate-900">{title}</h3>
-      <p className="mt-4 text-slate-600 leading-relaxed">
-        {description}
-      </p>
+      <p className="mt-3 text-slate-600 leading-relaxed">{description}</p>
     </div>
   );
 }
 
-/* ======================
-   DATA
-   ====================== */
 const FEATURES = [
   {
     title: "Hospital Portal",
-    description:
-      "Submit requests with ease through our intuitive interface designed for hospital administrators.",
+    description: "Submit staffing requests quickly with a simple workflow for hospital operations teams.",
     gradient: "from-teal-400 to-cyan-500",
     Icon: BuildingIcon,
   },
   {
     title: "Nurse Directory",
-    description:
-      "Access a comprehensive database of qualified nurses with detailed profiles and availability.",
-    gradient: "from-indigo-400 to-blue-600",
+    description: "Access verified nurse profiles with experience, department, and availability details.",
+    gradient: "from-sky-500 to-blue-600",
     Icon: UsersIcon,
   },
   {
     title: "Smart Matching",
-    description:
-      "AI-powered algorithm ensures perfect matches based on expertise and requirements.",
-    gradient: "from-pink-400 to-fuchsia-600",
+    description: "Match staffing demand to the right nurses by department and shift requirements.",
+    gradient: "from-indigo-500 to-slate-700",
     Icon: ZapIcon,
   },
   {
-    title: "Schedule Manager",
-    description:
-      "Visual calendars make it easy to track assignments across all shifts and departments.",
+    title: "Request Tracking",
+    description: "Track pending and completed requests in real time with clear assignment progress.",
     gradient: "from-emerald-400 to-green-600",
     Icon: CalendarIcon,
   },
   {
     title: "Conflict Prevention",
-    description:
-      "Automatic detection prevents scheduling conflicts and double-booking issues.",
+    description: "Reduce assignment errors and avoid overbooking with structured allocation controls.",
     gradient: "from-orange-400 to-red-500",
     Icon: ShieldIcon,
   },
   {
     title: "Analytics Dashboard",
-    description:
-      "Gain insights with real-time data, reports, and performance tracking.",
-    gradient: "from-sky-400 to-blue-500",
+    description: "Monitor performance using live metrics, demand trends, and fulfillment insights.",
+    gradient: "from-cyan-400 to-teal-600",
     Icon: ActivityIcon,
   },
 ];
-
-/* ======================
-   ICONS (UNCHANGED SVGs)
-   ====================== */
 
 function ActivityIcon() {
   return (

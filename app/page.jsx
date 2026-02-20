@@ -7,13 +7,12 @@ import HomeNav from "@/components/home/HomeNav";
 
 export default function HomePage() {
   return (
-    <>
+    <div>
+      <HomeNav />
       <HeroSection />
       <AboutUs />
       <Features />
       <Contact />
-      <HomeNav />
-    </>
+    </div>
   );
-  
 }
