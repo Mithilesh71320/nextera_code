@@ -1,11 +1,14 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import Link from "next/link";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Users,
   Clock,
   CheckCircle,
   ClipboardList,
+  RefreshCw,
+  TrendingUp,
 } from "lucide-react";
 import {
   getDashboardStats,
@@ -17,108 +20,209 @@ export default function AdminDashboardOverview() {
   const [stats, setStats] = useState(null);
   const [recent, setRecent] = useState([]);
   const [deptStats, setDeptStats] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [lastUpdated, setLastUpdated] = useState(null);
 
-  useEffect(() => {
-    async function loadData() {
-      const statsData = await getDashboardStats();
-      const recentData = await getRecentRequests();
-      const deptData = await getNursesByDepartment();
+  const loadData = useCallback(async () => {
+    setLoading(true);
+    setError("");
+
+    try {
+      const [statsData, recentData, deptData] = await Promise.all([
+        getDashboardStats(),
+        getRecentRequests(),
+        getNursesByDepartment(),
+      ]);
 
       setStats(statsData);
       setRecent(recentData);
       setDeptStats(deptData);
+      setLastUpdated(new Date());
+    } catch (_error) {
+      setError("Unable to load dashboard data right now.");
+    } finally {
+      setLoading(false);
     }
-
-    loadData();
   }, []);
 
-  if (!stats) return null;
+  useEffect(() => {
+    void loadData();
+  }, [loadData]);
+
+  const topDepartment = useMemo(() => {
+    if (!deptStats.length) return null;
+    return deptStats[0];
+  }, [deptStats]);
+
+  const pendingDemand = useMemo(() => {
+    return recent.reduce((total, req) => {
+      const required = Number(req.required_nurses ?? req.number_of_nurses ?? 0);
+      const assigned = Number(req.assigned_nurses || 0);
+      const left = Math.max(0, required - assigned);
+      return total + left;
+    }, 0);
+  }, [recent]);
+
+  if (loading && !stats) {
+    return <p className="text-sm text-gray-500">Loading dashboard...</p>;
+  }
+
+  if (error && !stats) {
+    return <p className="text-sm text-red-500">{error}</p>;
+  }
 
   return (
     <div className="dashboard-wrapper flex flex-col gap-8">
+      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">Overview</h2>
+          <p className="text-sm text-gray-500">
+            {lastUpdated
+              ? `Last updated: ${lastUpdated.toLocaleTimeString()}`
+              : "Live operations snapshot"}
+          </p>
+        </div>
 
-      {/* STATS */}
-      <div className="stats-grid flex gap-6 flex-wrap">
-        <StatCard icon={<Users />} label="Active Nurses" value={stats.activeNurses} />
-        <StatCard icon={<Clock />} label="Pending Requests" value={stats.pendingRequests} />
-        <StatCard icon={<CheckCircle />} label="Completed" value={stats.completedRequests} sub="of total" />
-        <StatCard icon={<ClipboardList />} label="Total Assignments" value={stats.totalAssignments} />
+        <button
+          onClick={loadData}
+          disabled={loading}
+          className="bg-white border border-gray-200 hover:border-teal-500 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium inline-flex items-center gap-2 w-fit"
+        >
+          <RefreshCw size={14} className={loading ? "animate-spin" : ""} />
+          {loading ? "Refreshing..." : "Refresh Data"}
+        </button>
       </div>
 
-      {/* MIDDLE SECTION */}
-      <div className="middle-section flex gap-6 flex-col lg:flex-row">
+      {error && (
+        <p className="text-sm text-red-500 bg-red-50 border border-red-100 rounded-lg px-4 py-2">
+          {error}
+        </p>
+      )}
 
-        <div className="dept-card flex-1 bg-white rounded-xl shadow p-6 flex flex-col gap-4">
-          <h2 className="font-semibold">Nurses by Department</h2>
+      <div className="stats-grid grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <StatCard icon={<Users />} label="Active Nurses" value={stats.activeNurses} />
+        <StatCard icon={<Clock />} label="Pending Requests" value={stats.pendingRequests} />
+        <StatCard icon={<CheckCircle />} label="Completed Requests" value={stats.completedRequests} />
+        <StatCard icon={<ClipboardList />} label="Assigned Nurses" value={stats.totalAssignments} />
+      </div>
 
-          {deptStats.length === 0 && (
-            <p className="text-sm text-gray-500">No active nurses found</p>
+      <div className="kpi-row grid gap-4 lg:grid-cols-3">
+        <KpiCard
+          title="Fill Rate"
+          value={`${stats.fillRate}%`}
+          hint={`${stats.totalAssignments}/${stats.totalRequested} requested filled`}
+          icon={<TrendingUp size={16} />}
+        />
+        <KpiCard
+          title="Top Department"
+          value={topDepartment?.department || "No data"}
+          hint={topDepartment ? `${topDepartment.count} active nurses` : "Add nurses to see trends"}
+          icon={<Users size={16} />}
+        />
+        <KpiCard
+          title="Open Demand"
+          value={pendingDemand}
+          hint="Unassigned nurses needed across recent requests"
+          icon={<Clock size={16} />}
+        />
+      </div>
+
+      <div className="middle-section grid gap-6 lg:grid-cols-2">
+        <div className="dept-card bg-white rounded-xl shadow p-6 flex flex-col gap-4">
+          <h3 className="font-semibold">Nurses by Department</h3>
+
+          {!deptStats.length && (
+            <p className="text-sm text-gray-500">No active nurses found.</p>
           )}
 
           {deptStats.map((dept) => (
-            <ProgressRow key={dept.department} label={dept.department} value={dept.count} max={stats.activeNurses} />
+            <ProgressRow
+              key={dept.department}
+              label={dept.department}
+              value={dept.count}
+              max={stats.activeNurses}
+            />
           ))}
         </div>
 
-        <div className="recent-card flex-1 bg-white rounded-xl shadow p-6 flex flex-col gap-4">
-          <h2 className="font-semibold">Recent Requests</h2>
+        <div className="recent-card bg-white rounded-xl shadow p-6 flex flex-col gap-4">
+          <h3 className="font-semibold">Latest Requests</h3>
 
           {recent.length === 0 && (
-            <p className="text-sm text-gray-500">No recent requests</p>
+            <p className="text-sm text-gray-500">No requests yet.</p>
           )}
 
-          {recent.map((req) => (
-            <div key={req.id} className="recent-row flex justify-between items-start border-b pb-3 last:border-none">
-              <div>
-                <p className="font-medium text-sm">{req.hospital_name}</p>
-                <p className="text-xs text-gray-500">{req.department} · {req.shift} · {req.number_of_nurses} nurses</p>
+          {recent.slice(0, 6).map((req) => {
+            const required = Number(req.required_nurses ?? req.number_of_nurses ?? 0);
+            const assigned = Number(req.assigned_nurses || 0);
+            const isCompleted = (req.status || "pending") === "completed";
+
+            return (
+              <div key={req.id} className="recent-row flex justify-between gap-3 border-b pb-3 last:border-none">
+                <div>
+                  <p className="font-medium text-sm">{req.hospital_name || "Unknown hospital"}</p>
+                  <p className="text-xs text-gray-500">
+                    {req.department || "General"} - {req.shift || "N/A"} - {assigned}/{required}
+                  </p>
+                </div>
+                <span className={`text-xs px-2 py-1 rounded-full h-fit ${isCompleted ? "bg-green-100 text-green-700" : "bg-yellow-100 text-yellow-700"}`}>
+                  {isCompleted ? "Completed" : "Pending"}
+                </span>
               </div>
-              <span className="text-xs bg-yellow-100 text-yellow-700 px-2 py-1 rounded-full">Pending</span>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
 
-      {/* QUICK ACTIONS */}
       <div className="quick-actions bg-teal-50 rounded-xl p-6 flex flex-col gap-4">
-        <h2 className="font-semibold">Quick Actions</h2>
-
-        <div className="actions-grid flex gap-4 flex-col md:flex-row">
-          <ActionCard title="Add New Nurse" desc="Register a new nurse in the system" />
-          <ActionCard title="Process Requests" desc="Assign nurses to pending requests" />
-          <ActionCard title="View Schedule" desc="Check daily assignments" />
+        <h3 className="font-semibold">Quick Actions</h3>
+        <div className="grid gap-4 md:grid-cols-2">
+          <ActionCard
+            href="/admin/dashboard/nurses"
+            title="Manage Nurses"
+            desc="Add staff, review departments, and deactivate unavailable profiles."
+          />
+          <ActionCard
+            href="/admin/dashboard/requests"
+            title="Process Requests"
+            desc="Assign nurses to hospitals and close pending staffing demand."
+          />
         </div>
       </div>
 
       <style jsx global>{`
         @media (max-width: 768px) {
-          .stats-grid { gap: 14px; }
-          .stats-grid > div { min-width: 100%; }
-
-          .middle-section { gap: 18px; }
-          .dept-card, .recent-card { padding: 18px; }
-
-          .recent-row { flex-direction: column; gap: 6px; }
-
-          .actions-grid { gap: 12px; }
-        }
-
-        @media (max-width: 480px) {
-          .quick-actions { padding: 18px 14px; }
+          .dept-card,
+          .recent-card,
+          .quick-actions {
+            padding: 18px 14px;
+          }
         }
       `}</style>
     </div>
   );
 }
 
-function StatCard({ icon, label, value, sub }) {
+function StatCard({ icon, label, value }) {
   return (
-    <div className="bg-white rounded-xl shadow p-5 flex gap-4 items-center min-w-[220px]">
+    <div className="bg-white rounded-xl shadow p-5 flex gap-4 items-center">
       <div className="bg-teal-100 text-teal-600 p-3 rounded-lg">{icon}</div>
       <div>
         <p className="text-sm text-gray-500">{label}</p>
-        <p className="text-2xl font-semibold">{value} {sub && <span className="text-xs text-gray-400">{sub}</span>}</p>
+        <p className="text-2xl font-semibold">{value}</p>
       </div>
+    </div>
+  );
+}
+
+function KpiCard({ title, value, hint, icon }) {
+  return (
+    <div className="bg-white rounded-xl shadow p-5 border border-gray-100">
+      <div className="text-teal-600 mb-2">{icon}</div>
+      <p className="text-xs uppercase tracking-wide text-gray-500">{title}</p>
+      <p className="text-2xl font-semibold text-gray-900">{value}</p>
+      <p className="text-sm text-gray-500 mt-1">{hint}</p>
     </div>
   );
 }
@@ -139,11 +243,11 @@ function ProgressRow({ label, value, max }) {
   );
 }
 
-function ActionCard({ title, desc }) {
+function ActionCard({ href, title, desc }) {
   return (
-    <div className="flex-1 bg-white rounded-xl p-4 shadow">
+    <Link href={href} className="bg-white rounded-xl p-4 shadow hover:shadow-md transition">
       <p className="font-medium">{title}</p>
       <p className="text-sm text-gray-600">{desc}</p>
-    </div>
+    </Link>
   );
 }

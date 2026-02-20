@@ -1,18 +1,50 @@
 "use client";
 
+import { useState } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { supabase } from "@/lib/supabase/client";
 import Navbar from "@/components/layout/navbar";
 import AuthGate from "@/components/auth/AuthGate";
 import {
+  ArrowLeft,
   Lock,
-  UserPlus,
   ShieldCheck,
   Users,
   ClipboardCheck,
   CalendarCheck,
+  Mail,
+  KeyRound,
 } from "lucide-react";
 
-export default function AdminLoginPage() {
+export default function AdminSignInPage() {
+  const router = useRouter();
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  const handleLogin = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setError("");
+
+    const formData = new FormData(e.target);
+    const email = formData.get("email");
+    const password = formData.get("password");
+
+    const { error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+
+    setLoading(false);
+
+    if (error) {
+      setError(error.message);
+    } else {
+      router.push("/admin/dashboard");
+    }
+  };
+
   return (
     <AuthGate requireAuth={false}>
       <>
@@ -20,8 +52,6 @@ export default function AdminLoginPage() {
 
         <main className="login-main min-h-screen bg-gray-50 flex justify-center px-6 py-12">
           <div className="login-container w-full max-w-6xl flex flex-col lg:flex-row gap-10">
-
-            {/* LEFT SECTION */}
             <div className="login-left flex-1 flex flex-col gap-6">
               <div className="flex items-center gap-2 text-teal-600 text-sm font-medium">
                 <ShieldCheck size={16} />
@@ -38,7 +68,6 @@ export default function AdminLoginPage() {
                 assignments efficiently.
               </p>
 
-              {/* Feature Cards */}
               <div className="feature-list flex flex-col gap-4 max-w-md">
                 <FeatureCard
                   icon={<Users />}
@@ -58,53 +87,79 @@ export default function AdminLoginPage() {
               </div>
             </div>
 
-            {/* RIGHT SECTION */}
             <div className="login-right flex-1 flex justify-center">
-              <div className="w-full max-w-md">
-                <div className="login-form w-full bg-white rounded-2xl shadow-lg p-8 flex flex-col gap-6">
-                  <div className="flex flex-col items-center gap-3">
-                    <div className="bg-teal-100 p-3 rounded-xl text-teal-600">
-                      <Lock />
-                    </div>
-                    <h2 className="text-xl font-semibold">Admin Access</h2>
-                    <p className="text-sm text-gray-500 text-center">
-                      Choose an option to continue
-                    </p>
+              <form
+                onSubmit={handleLogin}
+                className="login-form w-full max-w-md bg-white rounded-2xl shadow-lg p-8 flex flex-col gap-6"
+              >
+                <div className="flex flex-col items-center gap-3">
+                  <div className="bg-teal-100 p-3 rounded-xl text-teal-600">
+                    <Lock />
                   </div>
+                  <h2 className="text-xl font-semibold">Sign In</h2>
+                  <p className="text-sm text-gray-500 text-center">
+                    Enter your credentials to continue
+                  </p>
+                </div>
 
-                  <Link
-                    href="/admin/login/signin"
-                    className="w-full bg-teal-600 hover:bg-teal-700 text-white py-3 rounded-lg font-medium flex items-center justify-center gap-2"
-                  >
-                    <Lock size={16} />
-                    Sign In
-                  </Link>
+                {error && (
+                  <p className="text-red-500 text-sm text-center">
+                    {error}
+                  </p>
+                )}
 
-                  <Link
-                    href="/admin/login/signup"
-                    className="w-full border border-teal-600 text-teal-700 hover:bg-teal-50 py-3 rounded-lg font-medium flex items-center justify-center gap-2"
-                  >
-                    <UserPlus size={16} />
-                    Sign Up
-                  </Link>
-
-                  {/* Demo Info */}
-                  <div className="bg-teal-50 border border-teal-100 rounded-lg p-4 text-sm">
-                    <p className="font-medium text-teal-700 mb-1">
-                      Demo Access
-                    </p>
-                    <p className="text-gray-600">
-                      Use any email and password to login and explore the system
-                    </p>
+                <div className="flex flex-col gap-2">
+                  <label className="text-sm font-medium">
+                    Email Address
+                  </label>
+                  <div className="input flex items-center gap-2">
+                    <Mail size={16} />
+                    <input
+                      type="email"
+                      name="email"
+                      placeholder="admin@nexteracode.com"
+                      required
+                      className="flex-1 outline-none"
+                    />
                   </div>
                 </div>
-              </div>
+
+                <div className="flex flex-col gap-2">
+                  <label className="text-sm font-medium">
+                    Password
+                  </label>
+                  <div className="input flex items-center gap-2">
+                    <KeyRound size={16} />
+                    <input
+                      type="password"
+                      name="password"
+                      placeholder="Enter your password"
+                      required
+                      className="flex-1 outline-none"
+                    />
+                  </div>
+                </div>
+
+                <button
+                  disabled={loading}
+                  className="w-full bg-teal-600 hover:bg-teal-700 text-white py-3 rounded-lg font-medium"
+                >
+                  {loading ? "Signing in..." : "Sign In to Dashboard"}
+                </button>
+
+                <Link
+                  href="/admin/login"
+                  className="text-sm text-teal-700 hover:text-teal-800 inline-flex items-center gap-2 justify-center"
+                >
+                  <ArrowLeft size={14} />
+                  Back to options
+                </Link>
+              </form>
             </div>
           </div>
         </main>
 
         <style jsx global>{`
-        /* MOBILE */
         @media (max-width: 768px) {
           .login-main {
             padding: 20px 14px;
@@ -143,7 +198,6 @@ export default function AdminLoginPage() {
           }
         }
 
-        /* SMALL PHONES */
         @media (max-width: 480px) {
           .login-title {
             font-size: 22px;
